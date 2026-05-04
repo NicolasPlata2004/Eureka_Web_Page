@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-2.5-flash"
 
+    # DeepSeek
+    DEEPSEEK_API_KEY: Optional[str] = None
+    DEEPSEEK_MODEL: str = "deepseek-chat"
+
     # Storage (S3/R2/MinIO)
     STORAGE_BACKEND: str = "minio"          # minio | s3 | r2
     STORAGE_ENDPOINT: str = "http://minio:9000"

@@ -21,6 +21,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 _openai_client = None
 _anthropic_client = None
 _gemini_client = None
+_deepseek_client = None
 
 
 def get_ai_provider() -> str:
@@ -31,10 +32,12 @@ def get_ai_provider() -> str:
         return "anthropic"
     if settings.GEMINI_API_KEY:
         return "gemini"
+    if settings.DEEPSEEK_API_KEY:
+        return "deepseek"
     raise HTTPException(
         503,
         "No hay API key de IA configurada. "
-        "Configure OPENAI_API_KEY, ANTHROPIC_API_KEY o GEMINI_API_KEY en .env"
+        "Configure OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY o DEEPSEEK_API_KEY en .env"
     )
 
 
@@ -61,6 +64,17 @@ def get_gemini_client():
         genai.configure(api_key=settings.GEMINI_API_KEY)
         _gemini_client = genai.GenerativeModel(settings.GEMINI_MODEL)
     return _gemini_client
+
+
+def get_deepseek_client():
+    global _deepseek_client
+    if _deepseek_client is None:
+        from openai import AsyncOpenAI
+        _deepseek_client = AsyncOpenAI(
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url="https://api.deepseek.com",
+        )
+    return _deepseek_client
 
 
 def _recover_partial_questions(text: str) -> dict:
@@ -237,6 +251,21 @@ async def call_ai_json(
         tokens = getattr(response.usage_metadata, "total_token_count", 0)
         return _robust_json_parse(response.text.strip()), tokens
 
+    elif provider == "deepseek":
+        client = get_deepseek_client()
+        response = await client.chat.completions.create(
+            model=settings.DEEPSEEK_MODEL,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=max_tokens,
+            temperature=0.7,
+        )
+        tokens = response.usage.total_tokens
+        return _robust_json_parse(response.choices[0].message.content), tokens
+
     raise HTTPException(500, f"Proveedor no soportado: {provider}")
 
 
@@ -310,6 +339,8 @@ async def get_provider_info():
             model = settings.OPENAI_MODEL
         elif provider == "anthropic":
             model = settings.ANTHROPIC_MODEL
+        elif provider == "deepseek":
+            model = settings.DEEPSEEK_MODEL
         else:
             model = settings.GEMINI_MODEL
         return {"provider": provider, "model": model, "status": "configured"}
@@ -379,7 +410,9 @@ Responde con JSON así:
         job.output_data = result
         job.tokens_used = tokens
         job.model_used = settings.OPENAI_MODEL if settings.OPENAI_API_KEY else (
-            settings.ANTHROPIC_MODEL if settings.ANTHROPIC_API_KEY else settings.GEMINI_MODEL
+            settings.ANTHROPIC_MODEL if settings.ANTHROPIC_API_KEY else (
+                settings.GEMINI_MODEL if settings.GEMINI_API_KEY else settings.DEEPSEEK_MODEL
+            )
         )
         job.finished_at = datetime.utcnow()
 
@@ -557,31 +590,37 @@ async def ocr_import(
     clean_ocr = clean_ocr.replace('\\', ' ').replace('"', "'").replace('\r', '')
     clean_ocr = _re.sub(r'\n{3,}', '\n\n', clean_ocr).strip()
 
-    # ── Pass 1: plain-text extraction ─────────────────────────────────────
-    # Ask the model to identify questions as numbered plain text — no JSON yet.
-    # This avoids the main failure mode: the model forgetting to escape quotes
-    # inside JSON string values, which produces unparseable output.
+    # ── Pass 1: extraction + LaTeX conversion ────────────────────────────
+    # The model extracts questions AND converts tables/formulas to LaTeX.
+    # Options with LaTeX content get a [LATEX] prefix so Pass 2 can detect them.
     system_p1 = (
-        "Eres experto en lectura de exámenes ICFES. "
-        "Extrae el contenido de las preguntas tal como aparece, sin reformular."
+        "Eres experto en lectura de exámenes ICFES y en LaTeX matemático. "
+        "Extraes preguntas de examen y conviertes tablas y fórmulas a LaTeX."
     )
-    prompt_p1 = f"""El siguiente texto fue extraído por OCR de un documento con preguntas de examen.
-Lista TODAS las preguntas de selección múltiple que encuentres.
-
-Para cada pregunta usa exactamente este formato de texto plano:
----
-PREGUNTA: <enunciado completo>
-A: <texto opción A>
-B: <texto opción B>
-C: <texto opción C>
-D: <texto opción D>
-CORRECTA: <A|B|C|D o DESCONOCIDA>
----
-
-TEXTO OCR:
-{clean_ocr[:4000]}
-
-Responde SOLO con el listado en el formato indicado. Nada más."""
+    _p1_template = (
+        "El siguiente texto fue extraido por OCR de un documento con preguntas de examen ICFES.\n"
+        "Lista TODAS las preguntas de seleccion multiple que encuentres.\n\n"
+        "REGLAS CRITICAS:\n"
+        "1. Copia el enunciado y las opciones exactamente (sin inventar ni reformular).\n"
+        "2. Si el enunciado incluye una TABLA DE CONTEXTO, conviertela a LaTeX tabular:\n"
+        "   Ejemplo: \\begin{tabular}{|l|c|}\\hline Columna & Valor \\\\ \\hline Fila & 1 \\\\ \\hline \\end{tabular}\n"
+        "3. Si una OPCION contiene una tabla o fraccion matematica, usa LaTeX con prefijo [LATEX]:\n"
+        "   Ejemplo A: [LATEX] \\dfrac{0,4}{0,6}\n"
+        "   Ejemplo B: [LATEX] \\begin{tabular}{|l|c|}...\\end{tabular}\n"
+        "4. Si la pregunta referencia una figura/imagen no textual, escribe [IMAGEN] en el enunciado.\n"
+        "5. Si la respuesta correcta es visible (marcada, negrita, subrayada), indicala.\n\n"
+        "Formato EXACTO para cada pregunta:\n"
+        "---\n"
+        "PREGUNTA: <enunciado completo con tablas de contexto en LaTeX si aplica>\n"
+        "A: <texto plano o [LATEX] codigo LaTeX>\n"
+        "B: <texto plano o [LATEX] codigo LaTeX>\n"
+        "C: <texto plano o [LATEX] codigo LaTeX>\n"
+        "D: <texto plano o [LATEX] codigo LaTeX>\n"
+        "CORRECTA: <A|B|C|D o DESCONOCIDA>\n"
+        "---\n\n"
+        "TEXTO OCR:\n"
+    )
+    prompt_p1 = _p1_template + clean_ocr[:4000] + "\n\nResponde SOLO con el listado. Sin explicaciones adicionales."
 
     job = AIJob(
         requester_id=current_user.id,
@@ -617,6 +656,18 @@ Responde SOLO con el listado en el formato indicado. Nada más."""
             )
             extracted_text = p1_resp.content[0].text or ""
             p1_tokens = p1_resp.usage.input_tokens + p1_resp.usage.output_tokens
+        elif provider == "deepseek":
+            p1_resp = await get_deepseek_client().chat.completions.create(
+                model=settings.DEEPSEEK_MODEL,
+                messages=[
+                    {"role": "system", "content": system_p1},
+                    {"role": "user",   "content": prompt_p1},
+                ],
+                max_tokens=4000,
+                temperature=0.2,
+            )
+            extracted_text = p1_resp.choices[0].message.content or ""
+            p1_tokens = p1_resp.usage.total_tokens
         else:  # gemini
             import asyncio
             import google.generativeai as genai
@@ -633,39 +684,48 @@ Responde SOLO con el listado en el formato indicado. Nada más."""
         if not extracted_text.strip():
             raise ValueError("El modelo no encontró preguntas en el texto OCR")
 
-        # ── Pass 2: structure as JSON ───────────────────────────────────────
-        # The extracted_text now has clean prose — no raw OCR garbage.
-        # Converting prose→JSON is much less likely to produce malformed output.
+        # ── Pass 2: structure as JSON with LaTeX metadata ──────────────────
+        # Pass 1 marked options with [LATEX] prefix. Here we parse that into
+        # typed fields so the frontend knows how to render each option.
         system_p2 = (
             "Conviertes texto estructurado de preguntas ICFES a JSON. "
-            "Responde ÚNICAMENTE con JSON válido."
+            "Responde ÚNICAMENTE con JSON válido y completo."
         )
         prompt_p2 = f"""Convierte este listado de preguntas al formato JSON indicado.
-El texto ya viene limpio: copia los valores exactamente, no los reformules.
+REGLAS:
+- Copia los valores exactamente tal como aparecen en el texto fuente.
+- Si una opción empieza con [LATEX], quita el prefijo y pon tipo_X = "latex".
+- Si una opción es texto normal, pon tipo_X = "text".
+- Para el enunciado: si contiene \\begin{{tabular}} o fórmulas LaTeX, pon tiene_latex_enunciado = true.
+- tiene_imagen = true solo si el enunciado contiene [IMAGEN].
 
 PREGUNTAS:
-{extracted_text[:5000]}
+{{extracted_text[:6000]}}
 
-JSON de salida (un objeto por pregunta, dentro del array):
-{{
+JSON de salida EXACTO:
+{{{{
   "preguntas_encontradas": [
-    {{
-      "enunciado": "texto exacto del enunciado",
-      "opcion_a": "texto exacto",
-      "opcion_b": "texto exacto",
-      "opcion_c": "texto exacto",
-      "opcion_d": "texto exacto",
+    {{{{
+      "enunciado": "texto completo del enunciado (con LaTeX tabular embebido si aplica)",
+      "tiene_latex_enunciado": false,
+      "opcion_a": "texto o código LaTeX de la opción A (sin el prefijo [LATEX])",
+      "opcion_b": "...",
+      "opcion_c": "...",
+      "opcion_d": "...",
+      "tipo_a": "text",
+      "tipo_b": "text",
+      "tipo_c": "text",
+      "tipo_d": "text",
       "respuesta_correcta": "A|B|C|D|null",
       "area": "matematicas|lectura_critica|sociales_ciudadanas|ciencias_naturales|ingles",
       "difficulty": "1|2|3|4|5",
-      "latex_content": null,
       "tiene_imagen": false
-    }}
+    }}}}
   ],
   "total_encontradas": 0
-}}"""
+}}}}"""
 
-        result, p2_tokens = await call_ai_json(prompt_p2, system_p2, max_tokens=4000)
+        result, p2_tokens = await call_ai_json(prompt_p2, system_p2, max_tokens=6000)
 
         total_tokens = p1_tokens + p2_tokens
         job.status = AIJobStatus.completado

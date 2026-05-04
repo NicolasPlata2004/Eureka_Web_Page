@@ -10,6 +10,7 @@ import { examsApi } from '@/lib/api'
 import { useExamStore } from '@/store/examStore'
 import { TimerDisplay, Spinner, Modal, AreaBadge } from '@/components/ui'
 import { AREA_LABELS, type QuestionArea } from '@/types'
+import QuestionRenderer from '@/components/QuestionRenderer'
 import toast from 'react-hot-toast'
 
 export default function StudentExam() {
@@ -208,42 +209,34 @@ export default function StudentExam() {
       <div className="flex-1 flex">
         <div className="flex-1 max-w-3xl mx-auto w-full px-5 py-6">
 
-          {/* Question number + stem */}
+          {/* Question number + renderer */}
           <div className="mb-5 flex gap-4">
             {/* Big number */}
             <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-lg font-bold"
                  style={{ background: 'var(--primary)', color: 'var(--nav-active)', fontFamily: 'EB Garamond, Georgia, serif', border: '1px solid var(--primary-dark)' }}>
               {store.currentIndex + 1}
             </div>
-            {/* Enunciado */}
-            <div className="flex-1 card py-4">
-              <p className="leading-relaxed" style={{ color: 'var(--text)', fontSize: '15px' }}>
-                {current.enunciado}
-              </p>
+            {/* Question content */}
+            <div className="flex-1">
+              <QuestionRenderer
+                question={{
+                  enunciado: current.enunciado,
+                  tiene_latex_enunciado: (current as any).tiene_latex_enunciado,
+                  opcion_a: current.opciones?.find((o: any) => o.letra === 'A')?.texto ?? '',
+                  opcion_b: current.opciones?.find((o: any) => o.letra === 'B')?.texto ?? '',
+                  opcion_c: current.opciones?.find((o: any) => o.letra === 'C')?.texto ?? '',
+                  opcion_d: current.opciones?.find((o: any) => o.letra === 'D')?.texto ?? '',
+                  tipo_a: (current as any).tipo_a,
+                  tipo_b: (current as any).tipo_b,
+                  tipo_c: (current as any).tipo_c,
+                  tipo_d: (current as any).tipo_d,
+                  tiene_imagen: (current as any).tiene_imagen,
+                }}
+                mode="exam"
+                selectedAnswer={currentAnswer}
+                onSelect={handleSelect}
+              />
             </div>
-          </div>
-
-          {/* Options */}
-          <div className="space-y-2 ml-14">
-            {current.opciones?.map((opt) => (
-              <button
-                key={opt.letra}
-                onClick={() => handleSelect(opt.letra)}
-                className={clsx('exam-option w-full text-left', currentAnswer === opt.letra && 'exam-option-selected')}
-              >
-                {/* Letter circle */}
-                <div className="w-7 h-7 flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                     style={{
-                       background: currentAnswer === opt.letra ? 'var(--primary)' : 'var(--surface-2)',
-                       color: currentAnswer === opt.letra ? 'white' : 'var(--primary)',
-                       border: `1px solid ${currentAnswer === opt.letra ? 'var(--primary-dark)' : 'var(--border)'}`,
-                       fontFamily: 'EB Garamond, Georgia, serif',
-                     }}>
-                  {opt.letra}
-                </div>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>{opt.texto}</p>
-              </button>
-            ))}
           </div>
 
           {/* Bottom navigation */}
