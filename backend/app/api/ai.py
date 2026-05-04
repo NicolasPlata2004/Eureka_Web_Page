@@ -608,7 +608,12 @@ async def ocr_import(
         "   Ejemplo A: [LATEX] \\dfrac{0,4}{0,6}\n"
         "   Ejemplo B: [LATEX] \\begin{tabular}{|l|c|}...\\end{tabular}\n"
         "4. Si la pregunta referencia una figura/imagen no textual, escribe [IMAGEN] en el enunciado.\n"
-        "5. Si la respuesta correcta es visible (marcada, negrita, subrayada), indicala.\n\n"
+        "5. RESPUESTA CORRECTA:\n"
+        "   a) Si está marcada visualmente (negrita, subrayada, asterisco): escribe la letra A, B, C o D.\n"
+        "   b) Si NO está marcada: RAZONA. Lee el enunciado, aplica la lógica/matemática y determina cuál opción es correcta.\n"
+        "      Si puedes determinarlo con certeza, escribe la letra. Si hay ambigüedad genuina, escribe DESCONOCIDA.\n"
+        "6. Si las opciones son TABLAS, cada tabla es una opcion distinta (A, B, C, D en orden de aparicion).\n"
+        "   Numera las tablas de arriba a abajo: la 1ra es A, 2da es B, etc.\n\n"
         "Formato EXACTO para cada pregunta:\n"
         "---\n"
         "PREGUNTA: <enunciado completo con tablas de contexto en LaTeX si aplica>\n"
@@ -643,7 +648,7 @@ async def ocr_import(
                     {"role": "user",   "content": prompt_p1},
                 ],
                 max_tokens=4000,
-                temperature=0.2,
+                temperature=0.1,
             )
             extracted_text = p1_resp.choices[0].message.content or ""
             p1_tokens = p1_resp.usage.total_tokens
@@ -664,7 +669,7 @@ async def ocr_import(
                     {"role": "user",   "content": prompt_p1},
                 ],
                 max_tokens=4000,
-                temperature=0.2,
+                temperature=0.1,
             )
             extracted_text = p1_resp.choices[0].message.content or ""
             p1_tokens = p1_resp.usage.total_tokens
@@ -698,9 +703,11 @@ REGLAS:
 - Si una opción es texto normal, pon tipo_X = "text".
 - Para el enunciado: si contiene \\begin{{tabular}} o fórmulas LaTeX, pon tiene_latex_enunciado = true.
 - tiene_imagen = true solo si el enunciado contiene [IMAGEN].
+- respuesta_correcta: copia exactamente "A", "B", "C" o "D" si el texto fuente lo indica; si dice DESCONOCIDA pon null.
+- total_encontradas: debe ser igual al número de elementos en preguntas_encontradas.
 
 PREGUNTAS:
-{{extracted_text[:6000]}}
+{extracted_text[:6000]}
 
 JSON de salida EXACTO:
 {{{{
@@ -726,6 +733,10 @@ JSON de salida EXACTO:
 }}}}"""
 
         result, p2_tokens = await call_ai_json(prompt_p2, system_p2, max_tokens=6000)
+
+        # Normalize: recalculate total from actual array (don't trust model count)
+        preguntas = result.get("preguntas_encontradas", [])
+        result["total_encontradas"] = len(preguntas)
 
         total_tokens = p1_tokens + p2_tokens
         job.status = AIJobStatus.completado
