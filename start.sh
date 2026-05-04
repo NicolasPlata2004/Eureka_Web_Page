@@ -89,7 +89,7 @@ echo -e "${GREEN}${BOLD}══════════════════�
 echo ""
 echo -e "  ${BOLD}Plataforma:${RESET}    http://localhost"
 echo -e "  ${BOLD}API Docs:${RESET}      http://localhost/api/docs"
-echo -e "  ${BOLD}MinIO Console:${RESET} http://localhost:9001  (admin / minioadmin)"
+echo -e "   ${BOLD}MinIO Console:${RESET} http://localhost:9001  (admin / minioadmin)"
 echo ""
 echo -e "  ${CYAN}${BOLD}Credenciales demo:${RESET}"
 echo -e "  Docente:    docente@eureka.edu.co  /  Docente123!"
