@@ -143,7 +143,7 @@ async def list_exams(
         if course_id:
             query = query.where(MockExam.course_id == course_id)
         else:
-            query = query.where(MockExam.is_public == True)
+            query = query.where(MockExam.is_public.is_(True))
     else:
         # Docente/admin puede filtrar por curso opcionalmente
         if course_id:

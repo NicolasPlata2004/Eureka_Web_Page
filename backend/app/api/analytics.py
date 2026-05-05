@@ -394,7 +394,7 @@ async def course_analytics(
             AttemptAnswer.question_id,
             func.count(AttemptAnswer.id).label("total"),
             func.sum(
-                func.cast(AttemptAnswer.is_correct == False, type_=__import__('sqlalchemy').Integer)
+                func.cast(AttemptAnswer.is_correct.is_(False), type_=__import__('sqlalchemy').Integer)
             ).label("wrong"),
         )
         .join(Attempt, AttemptAnswer.attempt_id == Attempt.id)
@@ -526,18 +526,23 @@ async def institution_summary(
             and_(
                 User.institution_id == inst_id,
                 Attempt.status == ExamStatus.completado,
-                Attempt.score_global != None,
+                Attempt.score_global.isnot(None),
             )
         )
     )
     all_scores = [float(r[0]) for r in scores_result.fetchall()]
     dist = {"0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0}
     for s in all_scores:
-        if s <= 20: dist["0-20"] += 1
-        elif s <= 40: dist["21-40"] += 1
-        elif s <= 60: dist["41-60"] += 1
-        elif s <= 80: dist["61-80"] += 1
-        else: dist["81-100"] += 1
+        if s <= 20:
+            dist["0-20"] += 1
+        elif s <= 40:
+            dist["21-40"] += 1
+        elif s <= 60:
+            dist["41-60"] += 1
+        elif s <= 80:
+            dist["61-80"] += 1
+        else:
+            dist["81-100"] += 1
 
     return {
         "usuarios": user_counts,

@@ -128,7 +128,7 @@ async def list_questions(
             filters.append(
                 or_(
                     Question.institution_id == current_user.institution_id,
-                    Question.institution_id == None,
+                    Question.institution_id.is_(None),
                 )
             )
 
