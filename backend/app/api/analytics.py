@@ -1,16 +1,15 @@
-from typing import Optional, List
+from typing import Optional
 from uuid import UUID
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, desc, text
+from sqlalchemy import select, func, and_, desc
 from pydantic import BaseModel
 import logging
 
 from app.core.database import get_db
 from app.domain.models import (
-    Attempt, AttemptAnswer, Question, QuestionArea,
-    User, UserRole, Course, Enrollment, MockExam, ExamStatus
+    Attempt, AttemptAnswer, Question, User, UserRole, Enrollment, MockExam, ExamStatus
 )
 from app.api.auth import get_current_user, require_role
 
@@ -505,7 +504,7 @@ async def institution_summary(
     user_counts = {row[0].value: row[1] for row in users_result.fetchall()}
 
     # Questions count
-    from app.domain.models import Question, QuestionStatus
+    from app.domain.models import Question
     q_result = await db.execute(
         select(func.count(Question.id))
         .where(Question.institution_id == inst_id)

@@ -3,8 +3,8 @@ from typing import Optional
 import secrets
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, EmailStr

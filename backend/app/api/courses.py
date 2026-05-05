@@ -1,9 +1,8 @@
 from typing import Optional, List
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 
 from app.core.database import get_db

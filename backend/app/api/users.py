@@ -3,11 +3,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.domain.models import User, UserRole
-from app.api.auth import get_current_user, require_role, hash_password
+from app.api.auth import require_role
 
 router = APIRouter(prefix="/users", tags=["users"])
 

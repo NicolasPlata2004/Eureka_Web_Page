@@ -495,7 +495,6 @@ async def generate_explanation(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    from sqlalchemy.orm import selectinload
     q_result = await db.execute(
         select(Question)
         .options(Question.options if False else __import__('sqlalchemy.orm', fromlist=['selectinload']).selectinload(Question.options))
