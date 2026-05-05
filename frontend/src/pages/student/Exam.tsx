@@ -20,7 +20,7 @@ export default function StudentExam() {
   const [showNav, setShowNav] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
-  const autoSaveRef = useRef<ReturnType<typeof setTimeout>>()
+  const autoSaveRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const { data: exam, isLoading } = useQuery({
     queryKey: ['exam', examId],

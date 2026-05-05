@@ -28,21 +28,34 @@
 
 
 ### Prerrequisitos
-- Docker Compose v2
+- Docker Desktop (o Docker Compose v2)
 - 4 GB RAM mínimo
-- OpenAI API key
+- OpenAI API key (opcional para pruebas locales, requerida para IA)
 
-### 1. Clonar
+### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/a-peirogon/icfes-eureka.git
-cd icfes-eureka
-
-# Configurar backend
-cp backend/.env.example backend/.env
+git clone https://github.com/NicolasPlata2004/Eureka_Web_Page_with_IA.git
+cd Eureka_Web_Page_with_IA
 ```
 
-### 2. Levantar Docker
+### 2. Configurar las variables de entorno (.env)
+
+Para evitar errores y hacer el proceso sencillo, simplemente crea un archivo llamado `.env` en la **carpeta raíz del proyecto** (donde está el archivo `docker-compose.yml`) y pega el siguiente contenido:
+
+```ini
+# Configuración de la base de datos
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=eureka_db
+
+# Claves de APIs
+OPENAI_API_KEY=tu_clave_de_openai_aqui
+```
+
+### 3. Levantar la plataforma con Docker
+
+Abre una terminal en la carpeta raíz y ejecuta:
 
 ```bash
 docker compose up -d --build
