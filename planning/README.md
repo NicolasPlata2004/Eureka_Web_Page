@@ -18,6 +18,7 @@ Este directorio aterriza la hoja de ruta para convertir el repositorio actual en
 - [07_skills_subagents_herramientas.md](07_skills_subagents_herramientas.md): agentes, skills y division de trabajo con Codex, Cursor, Claude Code, Gemini, etc.
 - [08_docker_infraestructura.md](08_docker_infraestructura.md): estructura dockerizada, perfiles de desarrollo y despliegue simple.
 - [09_riesgos_decisiones_pendientes.md](09_riesgos_decisiones_pendientes.md): riesgos criticos, decisiones de producto y criterios de salida.
+- [10_fase_0_tareas_p0_jira_clickup.md](10_fase_0_tareas_p0_jira_clickup.md): backlog P0 ordenado como tareas para Jira/ClickUp.
 
 ## Definicion de V1 adecuada para mostrar a colegios
 
@@ -39,4 +40,3 @@ En 2 semanas no se debe intentar competir en cantidad de contenido con plataform
 - Digitalizacion asistida de examenes propios con revision humana.
 - Analitica pedagogica clara, no solo graficas.
 - IA controlada y trazable: ayuda a explicar, clasificar y personalizar, pero el docente mantiene control sobre contenido publicado.
-

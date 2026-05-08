@@ -16,7 +16,7 @@ P0:
 - Importar estudiantes por CSV.
 - Editar nombre, correo, grado, rol, estado e institucion.
 - Activar/desactivar usuarios.
-- Crear cursos/grupos por grado y ano.
+- Crear cursos/grupos por grado y año4.
 - Asignar docente responsable a curso.
 - Inscribir estudiantes masivamente a un curso.
 - Ver resumen de usuarios por rol y curso.
@@ -91,7 +91,7 @@ P2:
 P0:
 
 - Ver promedio del curso.
-- Ver desempeno por area.
+- Ver desempeño por area.
 - Ver ranking de estudiantes.
 - Ver estudiantes con bajo desempeno.
 - Ver preguntas mas falladas.

@@ -26,7 +26,7 @@ Implicacion para Eureka: ya existe competencia local con discurso muy similar. L
 
 ### edusimulacro
 
-Fuente: https://www.edusimulacro.online/
+Fuente: https://www.edusimulacro.site/
 
 Se posiciona como plataforma para Saber 11 con simulacros ilimitados, resultados inmediatos, seguimiento de progreso, retroalimentacion inteligente e integracion con Moodle. Publica estructura de areas y afirma una mejora promedio de puntaje.
 
